@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<head>
+  <!-- Auto-generated imports from Folium -->
+   <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.css" />
+   <script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.js"></script>
+
+   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+   
+   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+   <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+
+   <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+
+   <link rel="stylesheet" href="//rawgit.com/lvoogdt/Leaflet.awesome-markers/2.0/develop/dist/leaflet.awesome-markers.css">
+   <script src="//rawgithub.com/lvoogdt/Leaflet.awesome-markers/2.0/develop/dist/leaflet.awesome-markers.js"></script>
+
+
+   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/0.4.0/MarkerCluster.Default.css">
+   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/0.4.0/MarkerCluster.css">
+   <script src="//cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/0.4.0/leaflet.markercluster-src.js"></script>
+   <script src="//cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/0.4.0/leaflet.markercluster.js"></script>
+
+   <link rel="stylesheet" href="//birdage.github.io/Leaflet.awesome-markers/dist/leaflet.awesome.rotate.css">
+
+   <!-- show day/night terminator -->
+<script type="text/javascript" src="http://rawgithub.com/joergdietrich/Leaflet.Terminator/master/L.Terminator.js"></script>   
+   
+   
+   
+
+   <style>
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      #map {
+        position:absolute;
+        top:0;
+        bottom:0;
+        right:0;
+        left:0;
+      }
+
+   </style>
+</head>
+
+<body>
+
+   <div class="folium-map" id="folium_f1bcc1ebab0c40e597df0fbbd593fddb" style="width: 100%; height: 100%"></div>
+
+   <script>
+
+
+function onEachFeature(feature, layer) {
+			var popupContent = "<p>I started out as a GeoJSON " +
+					feature.geometry.type + ", but now I'm a Leaflet vector!</p>";
+
+			if (feature.properties && feature.properties.popupContent) {
+				popupContent += feature.properties.popupContent;
+			}
+
+			layer.bindPopup(popupContent);
+		}
+
+
+   
+   
+function pull_data(){
+        $.ajax({
+        dataType: 'json',
+        url: 'flashes.json', // <-- this is the URL to wherever you have your data
+         success: function(resp) {
+                // write the code here to pull out your data into usable stuff.
+                // resp will be your data
+                console.log('Pulled fresh points')
+                //console.log(resp)
+                map.removeLayer(flash_layer);
+                flash_layer = L.geoJson(resp,{
+                    style: function (feature) {
+                      return feature.properties && feature.properties.style;
+                    },
+
+                    //onEachFeature: onEachFeature,
+
+                    pointToLayer: function (feature, latlng) {
+                      return L.circleMarker(latlng, {
+                        radius: feature.radius,
+                        fillColor: "#ff7800",
+                        color: "#000",
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                      });
+                    }
+                  }).addTo(map);
+                  
+                  updateTerminator(t);
+                  
+        },
+        error: function() {
+                console.log('failed')
+                }
+        });
+  timeout = setTimeout(pull_data,5000);
+
+};
+
+
+// Piles of initialization
+
+
+//      var base_tile = L.tileLayer('http://{s}.tiles.mapbox.com/v3/mapbox.control-room/{z}/{x}/{y}.png', {   // Dark map
+      //var base_tile = L.tileLayer('http://{s}.tiles.mapbox.com/v3/mapbox.world-bright/{z}/{x}/{y}.png', {   // Light map
+      var base_tile = L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {                      // OSM basic map
+//      var base_tile = L.tileLayer('http://{s}.tile.stamen.com/terrain/{z}/{x}/{y}.jpg', {                     // Stamen terrain (USA only, too bad 'cuz it looks slick!)
+//        var base_tile = L.tileLayer('http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.jpg', {                     // Highest Contrast
+     maxZoom: 18,
+          minZoom: 1,
+          attribution: 'Map tiles by <a href="http://www.mapbox.com/m">Mapbox</a> Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
+      });
+
+      var baseLayer = {
+        "Base Layer": base_tile
+      };
+
+
+      /*
+      Bounding box.
+      */
+      var southWest = L.latLng(-90, -180),
+          northEast = L.latLng(90, 180),
+          bounds = L.latLngBounds(southWest, northEast);
+
+      /*
+      Creates the map and adds the selected layers
+      */
+      var map = L.map('folium_f1bcc1ebab0c40e597df0fbbd593fddb', {
+                                       center:[0, 0],
+                                       zoom: 3,
+                                       maxBounds: bounds,
+                                       layers: [base_tile]
+                                     });
+
+//      L.control.layers(baseLayer, layer_list).addTo(map);
+      L.control.layers(baseLayer).addTo(map);
+
+
+      // Add Stanford, because
+//      var circle_1 = L.circle([37.4225, -122.1653], 500, {
+//                            color: '#ff0000',
+//                            fillColor: '#ff0000',
+//                            fillOpacity: 1
+//                            });
+//      circle_1.bindPopup("Pop Text");
+//      circle_1._popup.options.maxWidth = 300;
+//      map.addLayer(circle_1)
+      
+// ------------ Initialize Flash Layer ------------
+      var flash_layer = L.geoJson();
+  
+// ------------ Initialize Terminator ------------
+      var t = L.terminator();
+      t.addTo(map);
+      function updateTerminator(t) {
+        var t2 = L.terminator();
+        t.setLatLngs(t2.getLatLngs());
+        t.redraw();
+      }
+  
+      map.worldCopyJump = true
+// ------------ Start data loop ------------
+  pull_data();
+   </script>
+
+</body>
