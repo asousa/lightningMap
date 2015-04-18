@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<head>
+  <!-- Auto-generated imports from Folium -->
+   <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.css" />
+   <script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.js"></script>
+
+   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+   <script src="http://code.jquery.com/ui/1.11.1/jquery-ui.js"></script>
+
+   
+   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+   <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+
+   <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+
+   <link rel="stylesheet" href="//rawgit.com/lvoogdt/Leaflet.awesome-markers/2.0/develop/dist/leaflet.awesome-markers.css">
+   <script src="//rawgithub.com/lvoogdt/Leaflet.awesome-markers/2.0/develop/dist/leaflet.awesome-markers.js"></script>
+
+
+   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/0.4.0/MarkerCluster.Default.css">
+   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/0.4.0/MarkerCluster.css">
+   <script src="//cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/0.4.0/leaflet.markercluster-src.js"></script>
+   <script src="//cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/0.4.0/leaflet.markercluster.js"></script>
+
+   <link rel="stylesheet" href="//birdage.github.io/Leaflet.awesome-markers/dist/leaflet.awesome.rotate.css">
+
+   <!-- show day/night terminator -->
+<script type="text/javascript" src="http://rawgithub.com/joergdietrich/Leaflet.Terminator/master/L.Terminator.js"></script>   
+
+<!-- 
+<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.0/themes/base/jquery-ui.css" type="text/css" />
+ -->
+<!-- Date / Time input formatter -->
+<script src="moment.js"></script> 
+<script src="combodate.js"></script> 
+
+   <style>
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      #map {
+        position:absolute;
+        top:0;
+        bottom:0;
+        right:0;
+        left:0;
+      }
+
+   </style>
+</head>
+
+<body>
+    <!-- Map div  -->
+   <div class="folium-map" id="livemap" style="width: 100%; height: 95%"></div> 
+   <!--  Input / Status div  -->
+   <div class="title-bar" id="titlebar" style="width=300px; height=5%">
+      <button onclick='requestData();'>Request Data</button>
+      <input type="text" id="datetime24" data-format="YYYY-MM-DDTHH:mm:ss" data-template=" MM / DD / YYYY     HH : mm . ss" name="datetime" value="2015-03-26T16:00:00"> (M, D, Y, H:M:S, UTC)
+
+   </div>
+   
+   
+   <script>
+
+//  Formatting for Date / Time input
+$('input').combodate({
+    minYear: 2012,
+    minuteStep: 1,
+    secondStep: 1,
+    smartDays: true,
+    firstItem: 'value'
+});   
+
+// For adding popups to marker clicks:
+function onEachFeature(feature, layer) {
+			var popupContent = "<p> Flash! at " +  feature.getLatLng() + "</p>";
+			if (feature.properties && feature.properties.popupContent) {
+				popupContent += feature.properties.popupContent;
+			}
+			layer.bindPopup(popupContent);
+		}
+
+// Pictures instead of markers for satellites
+var sat_icon = L.icon({
+    iconUrl: 'FP_Satellite_icon.svg',
+    //iconUrl: 'moltres2.png',
+    //iconSize: [48,48]
+    iconSize: [24,24],
+    
+    //iconAnchor: [0,0],
+    //popupAnchor: [0,0],
+});
+
+// ------------------------------------------------------------------------
+//      Main update function -- Runs each time new data is received:
+// ------------------------------------------------------------------------
+function update_map(resp) {
+                console.log('Pulled fresh points')
+
+                map.removeLayer(box_layer); 
+                
+                // ---------- Add Bounding Boxes -----------
+                box_layer = L.geoJson(resp,{
+                    filter: function(feature) {
+                    return feature.name == "box"},
+                    
+                    onEachFeature: function (feature, layer) {
+                      popupOptions = {maxWidth: 500};
+                      layer.bindPopup("<b>Total Counts: </b>" + feature.properties.counts,popupOptions);
+                    },
+
+                    style: function(feature) {
+                      return {
+                        fillColor: "#0088ff",
+                        color: "#000",
+                        weight: 0.5,
+                        opacity: 0.4,
+                        fillOpacity: 0.2}}
+                    }).addTo(boxes);
+
+
+
+                map.removeLayer(flash_layer);
+                // --------- Add flashes --------------
+                flash_layer = L.geoJson(resp,{
+                    filter: function(feature) { //console.log(feature.name)
+                    return feature.name == "Flash"},
+
+                    onEachFeature: function (feature, layer) {
+                      popupOptions = {maxWidth: 500};
+                      layer.bindPopup("<b>Time: </b>" + feature.time + "<br>" +
+                                      "<b>Location:</b> "+ feature.geometry.coordinates + "<br>" +
+                                      "<b>Peak Current:</b>" + feature.kA,popupOptions);
+                  },
+                    
+                    pointToLayer: function (feature, latlng) {
+                      return L.circleMarker(latlng, {
+                        radius: feature.radius,
+                        fillColor: "#ff7800",
+                        color: "#000",
+                        weight: 0.5,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                      });
+                    }
+                  }).addTo(flashes);
+
+                map.removeLayer(sat_layer); 
+                // ------------- Add Satellites ------------
+                sat_layer = L.geoJson(resp,{
+                    filter: function(feature) { 
+                    return feature.name == "Satellite"},
+                    
+                    onEachFeature: function (feature, layer) {
+                      popupOptions = {maxWidth: 500};
+                      layer.bindPopup("<b>Name: </b> " + feature.satname + "<br><b>Time: </b>" + feature.time + "<br><b>Location:</b> "+ feature.geometry.coordinates,popupOptions);
+                  },
+                    
+                    pointToLayer: function (feature, latlng) {
+                      return L.marker(latlng, {
+                        title: "Satellite",
+                        icon: sat_icon
+                      });
+                    }
+                    }).addTo(sats);
+
+                updateTerminator(t);
+         };
+
+   
+// // Repeatedly checks for fresh data (Jquery / Ajax version)
+// function pull_data(){
+//         $.ajax({
+//         dataType: 'json',
+//         url: 'flashes_static.json', // <-- this is the URL to wherever you have your data
+//          success: function(resp) {      
+//                 update_map(resp);
+//         },
+//         error: function() {
+//                 console.log('failed')
+//                 }
+//         });
+// //  timeout = setTimeout(pull_data,5000);
+// };
+
+
+
+
+// ------------ Initialize Base Layers ------------
+      var base_tile = L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {                      // OSM basic map
+          maxZoom: 18,
+          minZoom: 1,
+          attribution: 'Map tiles by <a href="http://www.mapbox.com/m">Mapbox</a> Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
+      });
+
+      var dark_tile = L.tileLayer('http://{s}.tiles.mapbox.com/v3/mapbox.control-room/{z}/{x}/{y}.png', {   // Dark map
+          maxZoom: 18,
+          minZoom: 1,
+          attribution: 'Map tiles by <a href="http://www.mapbox.com/m">Mapbox</a> Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
+      });
+
+        var toner_tile = L.tileLayer('http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.jpg', {                     // Highest Contrast
+          maxZoom: 18,
+          minZoom: 1,
+          attribution: 'Map tiles by <a href="http://www.mapbox.com/m">Mapbox</a> Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
+      });
+
+      var baseLayer = {
+        "Light": base_tile,
+        "Dark": dark_tile,
+        "Xerox": toner_tile
+      };
+
+// ------------ Initialize Content Layers ------------
+      var flashes = new L.LayerGroup();
+      var sats = new L.LayerGroup();
+      var daynite = new L.LayerGroup();
+      var boxes = new L.LayerGroup();
+      var flash_layer = L.geoJson();
+      var sat_layer = L.geoJson();
+      var box_layer = L.geoJson();
+      var t = L.terminator();
+
+      t.addTo(daynite);
+
+
+      var layer_list = {
+        "Lightning": flashes,
+        "Satellites": sats,
+        "Day/Night": daynite,
+        "Bounding Boxes": boxes
+      };
+      /*
+      Bounding box.
+      */
+      var southWest = L.latLng(-90, -180),
+          northEast = L.latLng(90, 180),
+          bounds = L.latLngBounds(southWest, northEast);
+
+      /*
+      Creates the map and adds the selected layers
+      */
+      var map = L.map('livemap', {
+                                       center:[0, 0],
+                                       zoom: 3,
+                                       maxBounds: bounds,
+                                       layers: [base_tile, flashes, sats, daynite, boxes]
+                                     });
+
+
+// ------------ Initialize Terminator ------------
+      
+      L.control.layers(baseLayer, layer_list).addTo(map);
+
+      function updateTerminator(t) {
+        var t2 = L.terminator();
+        t.setLatLngs(t2.getLatLngs());
+        t.redraw();
+      }
+  
+      map.worldCopyJump = true
+
+// ------------ Websocket Instantiation ------------
+
+    var socket = null;
+    var isopen = false;
+    window.onload = function() {
+
+//            socket = new WebSocket("ws://127.0.0.1:9000");
+    socket = new WebSocket("ws://llamas.stanford.edu:9000");
+    socket.binaryType = "arraybuffer";
+
+    socket.onopen = function() {
+       console.log("Connected!");
+       isopen = true;
+    }
+
+    socket.onmessage = function(e) {
+       if (typeof e.data == "string") {
+          console.log("Text message received: ");
+          update_map(JSON.parse(e.data));
+       }
+    }
+
+    socket.onclose = function(e) {
+       console.log("Connection closed.");
+       socket = null;
+       isopen = false;
+    }
+ };
+
+  function requestData(time) {
+    if (isopen) {
+//               socket.send("2015-03-26T12:00:00");
+       daystr = document.getElementById('datetime24').value
+       console.log(daystr)
+       socket.send(daystr);
+       console.log("Request sent.");               
+    } else {
+       console.log("Connection not opened.")
+    }
+  };
+
+  </script>
+
+</body>
