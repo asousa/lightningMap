@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<head>
+  <!-- Auto-generated imports from Folium -->
+   <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.css" />
+   <script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.js"></script>
+
+   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+   <script src="http://code.jquery.com/ui/1.11.1/jquery-ui.js"></script>
+
+   
+   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css"> 
+   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+  
+   <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+
+<!--    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+
+   <link rel="stylesheet" href="//rawgit.com/lvoogdt/Leaflet.awesome-markers/2.0/develop/dist/leaflet.awesome-markers.css">
+   <script src="//rawgithub.com/lvoogdt/Leaflet.awesome-markers/2.0/develop/dist/leaflet.awesome-markers.js"></script>
+ -->
+
+ <!--   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/0.4.0/MarkerCluster.Default.css">
+   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/0.4.0/MarkerCluster.css">
+   <script src="//cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/0.4.0/leaflet.markercluster-src.js"></script>
+   <script src="//cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/0.4.0/leaflet.markercluster.js"></script>
+ -->
+  <!--  <link rel="stylesheet" href="//birdage.github.io/Leaflet.awesome-markers/dist/leaflet.awesome.rotate.css"> -->
+
+   <!-- show day/night terminator -->
+<script type="text/javascript" src="http://rawgithub.com/joergdietrich/Leaflet.Terminator/master/L.Terminator.js"></script>   
+
+<!-- 
+<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.0/themes/base/jquery-ui.css" type="text/css" />
+ -->
+<!-- Date / Time input formatter -->
+<script src="moment.js"></script> 
+<script src="combodate.js"></script>
+<script src="livemap.js"></script>
+   <style>
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+   </style>
+  <style>
+     #livemap {width: 100%; height: 100%; position:absolute}
+     .title-bar{ 
+      position: absolute; 
+      top: 10px; left: 50px; 
+      float:center; 
+      z-index: 99; 
+      padding: 5px 10px;
+      background: rgba(0,0,0,0.5);
+      /*color:#fff;*/
+      border-radius: 3px}
+  </style>
+
+  <style>
+  #status {
+    position:absolute;
+    bottom: 10px;
+    left: 10px;
+    padding: 5px 10px;
+    background: rgba(0,0,0,0.5);
+    color:#fff;
+    border-radius: 3px;
+  }
+  </style>
+
+</head>
+
+<body>
+      <!-- Map div  -->
+      <div class="map" id="livemap" ></div><!-- style="width: 100%; height: 95%%"></div>  -->
+      <!--  Input / Status div  -->
+
+      <div class="title-bar" id="date_select" style="width=300px; height=5%" align=middle>
+      <button id = "submit" onclick='request_button();'>Request Data</button>
+      <input id="datetime24" type="text" data-format="YYYY-MM-DDTHH:mm:ss" data-template=" MM / DD / YYYY     HH : mm . ss" name="datetime">
+      <input id="live_cb" type="checkbox" onclick='live_updates();'><font color=#fff>Live feed</font>
+      </div>
+      <div id="status"> Initializing...</div>
+
+<script>
+
+//  Formatting for Date / Time input
+$(document.getElementById('datetime24')).combodate({
+    minYear: 2012,
+    minuteStep: 1,
+    secondStep: 1,
+    smartDays: true,
+    firstItem: 'value'
+});   
+
+function request_button() {
+  if (live.ws.readyState == 0) {
+    live.ws.open();
+  }
+  live.ws.request_update($('#datetime24').combodate('getValue','YYYY-MM-DDTHH:mm:ss'));
+}
+
+
+live.initialize();
+
+$('#datetime24').combodate("setValue",moment.utc().subtract(1,'minutes'));
+
+// // // Repeated loop for live feed: Runs when "live feed" is checked
+var live_timeout;
+
+function live_updates() {
+  if ($('#live_cb').is(':checked')) {
+    live.disp_status('Starting live feed');
+    $('#submit').hide();
+    live_timeout = setInterval( function() {
+      // console.log(moment.utc());
+
+      $('#datetime24').combodate("setValue",moment.utc().subtract(1,'minutes'));
+      
+      request_button();
+
+    },10000);  // 10-second interval
+  } 
+
+  else {
+    live.disp_status('Stopping live feed');
+    $('#submit').show();
+    // map.remove();
+    window.clearInterval(live_timeout);
+  }
+}
+
+ </script>
+
+
+</body>
