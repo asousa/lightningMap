@@ -127,6 +127,8 @@ def update_fresh(flashes,fig,ax, plotdate, satellite=None):
   fig.canvas.set_window_title(str(plotdate))
   #fig.canvas.draw()  
   plt.draw()
+  
+  
 # -------------------------------
 # Main Program
 # -------------------------------

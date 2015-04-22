@@ -27,7 +27,7 @@
    <!-- show day/night terminator -->
 <script type="text/javascript" src="http://rawgithub.com/joergdietrich/Leaflet.Terminator/master/L.Terminator.js"></script>   
    
-   
+  <title> GLD Live Feed </title> 
    
 
    <style>
@@ -52,25 +52,29 @@
 
 <body>
 
-   <div class="folium-map" id="folium_f1bcc1ebab0c40e597df0fbbd593fddb" style="width: 100%; height: 100%"></div>
-
+   <div class="folium-map" id="livemap" style="width: 100%; height: 100%"></div>
+   <div class="title-bar" id="titlebar" style="width=300px; height=120px"><p>yo</p></div>
    <script>
 
 
+// For adding popups to marker clicks:
 function onEachFeature(feature, layer) {
-			var popupContent = "<p>I started out as a GeoJSON " +
-					feature.geometry.type + ", but now I'm a Leaflet vector!</p>";
-
+			var popupContent = "<p> Flash! at " +  feature.getLatLng() + "</p>";
 			if (feature.properties && feature.properties.popupContent) {
 				popupContent += feature.properties.popupContent;
 			}
-
 			layer.bindPopup(popupContent);
 		}
 
+var sat_icon = L.icon({
+    iconUrl: 'FP_Satellite_icon.svg',
+    iconSize: [24,24],
+    //iconAnchor: [0,0],
+    //popupAnchor: [0,0],
+});
 
    
-   
+// Repeatedly checks for fresh data 
 function pull_data(){
         $.ajax({
         dataType: 'json',
@@ -81,13 +85,19 @@ function pull_data(){
                 console.log('Pulled fresh points')
                 //console.log(resp)
                 map.removeLayer(flash_layer);
+                
+                // Add flashes
                 flash_layer = L.geoJson(resp,{
-                    style: function (feature) {
-                      return feature.properties && feature.properties.style;
-                    },
+                    filter: function(feature) { console.log(feature.name)
+                    return feature.name == "Flash"},
 
-                    //onEachFeature: onEachFeature,
-
+                    onEachFeature: function (feature, layer) {
+                      popupOptions = {maxWidth: 500};
+                      layer.bindPopup("<b>Time: </b>" + feature.time + "<br>" +
+                                      "<b>Location:</b> "+ feature.geometry.coordinates + "<br>" +
+                                      "<b>Peak Current:</b>" + feature.kA,popupOptions);
+                  },
+                    
                     pointToLayer: function (feature, latlng) {
                       return L.circleMarker(latlng, {
                         radius: feature.radius,
@@ -99,9 +109,33 @@ function pull_data(){
                       });
                     }
                   }).addTo(map);
+
+                //sat_layer.setIcon()
+                map.removeLayer(sat_layer); 
+                // Add Satellites
+                sat_layer = L.geoJson(resp,{
+                    filter: function(feature) { console.log(feature.name)
+                    return feature.name == "Satellite"},
+                    
+                    onEachFeature: function (feature, layer) {
+                      popupOptions = {maxWidth: 500};
+                      layer.bindPopup("<b>Time: </b>" + feature.time + "<br><b>Location:</b> "+ feature.geometry.coordinates,popupOptions);
+                  },
+                    
+                    pointToLayer: function (feature, latlng) {
+                      return L.marker(latlng, {
+                        title: "Firebird",
+                        icon: sat_icon
+                      });
+                    }
+                    }).addTo(map);
+
                   
+                  
+
+
                   updateTerminator(t);
-                  
+               
         },
         error: function() {
                 console.log('failed')
@@ -110,6 +144,8 @@ function pull_data(){
   timeout = setTimeout(pull_data,5000);
 
 };
+
+
 
 
 // Piles of initialization
@@ -140,7 +176,7 @@ function pull_data(){
       /*
       Creates the map and adds the selected layers
       */
-      var map = L.map('folium_f1bcc1ebab0c40e597df0fbbd593fddb', {
+      var map = L.map('livemap', {
                                        center:[0, 0],
                                        zoom: 3,
                                        maxBounds: bounds,
@@ -163,9 +199,11 @@ function pull_data(){
       
 // ------------ Initialize Flash Layer ------------
       var flash_layer = L.geoJson();
+      var sat_layer = L.geoJson();
   
 // ------------ Initialize Terminator ------------
       var t = L.terminator();
+ 
       t.addTo(map);
       function updateTerminator(t) {
         var t2 = L.terminator();

@@ -5,7 +5,6 @@ live.ws_addr = "ws://llamas.stanford.edu:9000";
 live.data = {};
 live.data.raw = null;
 
-
 live.initialize = function() {
   // --------------- Initialize Base Tiles ---------------
   live.base_tile = L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {                      // OSM basic map

@@ -45,26 +45,31 @@
         padding: 0;
       }
 
-      #map {
-        position:absolute;
-        top:0;
-        bottom:0;
-        right:0;
-        left:0;
-      }
-
    </style>
+  <style>
+     #wrapper { position: relative; }
+     #livemap {width: 100%; height: 100%; position:absolute}
+     #titlebar { position: absolute; top: 10px; left: 50px; float:center; z-index: 99; background-color:#ffffff; opacity: 0.8 }
+     #status {border:2; position: relative; font-weight:bold;}
+  </style>
+
 </head>
 
 <body>
-    <!-- Map div  -->
-   <div class="folium-map" id="livemap" style="width: 100%; height: 95%"></div> 
-   <!--  Input / Status div  -->
-   <div class="title-bar" id="titlebar" style="width=300px; height=5%">
+    <!-- <div id="wrapper"> -->
+      <!-- Map div  -->
+      <div class="map" id="livemap" ></div><!-- style="width: 100%; height: 95%%"></div>  -->
+      <!--  Input / Status div  -->
+ 
+    <div class="title-bar" id="titlebar" style="width=300px; height=5%" align=top>
       <button onclick='requestData();'>Request Data</button>
-      <input type="text" id="datetime24" data-format="YYYY-MM-DDTHH:mm:ss" data-template=" MM / DD / YYYY     HH : mm . ss" name="datetime" value="2015-03-26T16:00:00"> (M, D, Y, H:M:S, UTC)
+      <input type="text" id="datetime24" data-format="YYYY-MM-DDTHH:mm:ss" data-template=" MM / DD / YYYY     HH : mm . ss" name="datetime" value="2015-03-26T16:00:00">
+    <span id="status"> Initializing...</span>
 
    </div>
+   <!-- </div> -->
+
+
    
    
    <script>
@@ -77,6 +82,11 @@ $('input').combodate({
     smartDays: true,
     firstItem: 'value'
 });   
+
+
+function disp_status(msg) {
+  document.getElementById('status').innerHTML = msg
+};
 
 // For adding popups to marker clicks:
 function onEachFeature(feature, layer) {
@@ -171,7 +181,9 @@ function update_map(resp) {
                     }
                     }).addTo(sats);
 
+                disp_status(Object.keys(resp).length + " entries")
                 updateTerminator(t);
+
          };
 
    
@@ -279,18 +291,22 @@ function update_map(resp) {
 
     socket.onopen = function() {
        console.log("Connected!");
+       disp_status("connected");
        isopen = true;
     }
 
     socket.onmessage = function(e) {
        if (typeof e.data == "string") {
           console.log("Text message received: ");
+          disp_status("Received data")
           update_map(JSON.parse(e.data));
        }
     }
 
     socket.onclose = function(e) {
        console.log("Connection closed.");
+       disp_staus("Connection closed.");
+
        socket = null;
        isopen = false;
     }
@@ -305,6 +321,8 @@ function update_map(resp) {
        console.log("Request sent.");               
     } else {
        console.log("Connection not opened.")
+     disp_status("Failed to Connect");
+
     }
   };
 

@@ -2,6 +2,7 @@
 import numpy as np
 import datetime
 import math
+import logging
 
 def check_flyover(satellite, flashes, flashtimes=None,
                        td=datetime.timedelta(0,0,0,0,1,0), logfile = 'flyover_log.txt'):
@@ -16,7 +17,7 @@ def check_flyover(satellite, flashes, flashtimes=None,
   s = satellite.coords
   t = satellite.curr_time
   
-  print "Sat Coords:", s
+  #print "Sat Coords:", s
 
   R_earth = 6378; # km
   deg_to_km = R_earth*math.pi/180; # ~ 110 km per degree
@@ -25,8 +26,8 @@ def check_flyover(satellite, flashes, flashtimes=None,
   lat_bounds = km_to_deg*np.array([-200, 200]) + s[1];
   lon_bounds = km_to_deg*np.array([-100, 100]) + s[0];
 
-  print "Lat bounds: ", lat_bounds
-  print "Lon bounds: ", lon_bounds
+  #print "Lat bounds: ", lat_bounds
+  #print "Lon bounds: ", lon_bounds
   if flashtimes is not None:
     delay = t - flashtimes
     flyovers = flashes[#(delay < td) &
@@ -36,7 +37,7 @@ def check_flyover(satellite, flashes, flashtimes=None,
                    (flashes[:,lon_ind] < lon_bounds[1]) ];
 
 
-  print 'Total Flyovers : ', flyovers.shape[0]
+  logging.info('Total Flyovers : ' + str(flyovers.shape[0]))
 
   total_counts = flyovers.shape[0]
 # Create a geoJSON polygon for the region
