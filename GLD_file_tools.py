@@ -87,12 +87,12 @@ class GLD_file_tools(object):
     file_list = []
     for file in files:
      if file.endswith(self.suffix):
-      print file
+      #print file
       file_list.append([(datetime.datetime.strptime(file,self.prefix + '-%Y%m%d%H%M%S.dat')),
                           (os.path.join(self.GLD_root,folder,file))])
 
     file_list.sort(key=lambda tup: tup[0])
-    print file_list
+    #logging.info(file_list)
     return file_list[-1] # newest file
 
 

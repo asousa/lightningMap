@@ -136,14 +136,17 @@ function live_updates() {
 
 
 // THIS IS REALLY SHAMEFUL but it seems to be happy
+// (Previous layers in Leaflet aren't happily garbage-collected:
+//  Stopgap measure to make it happen.)
 var refresher = setInterval( function() {
  if ($('#live_cb').is(':checked')) {
-    console.log("Such shame, very hack");
+    //console.log("Such shame, very hack");
     live.map.remove();
     live.initialize();
-    request_button();
+    live.update_map();
+    //request_button();
   }
-}, 60000); // HACK
+}, 30000); // HACK
 
 
  </script>

@@ -4,6 +4,7 @@ live.status_div = 'status';
 live.ws_addr = "ws://llamas.stanford.edu:9000";
 live.data = {};
 live.data.raw = null;
+live.data.last_req_time = null;
 
 live.initialize = function() {
   // --------------- Initialize Base Tiles ---------------
@@ -32,11 +33,14 @@ live.initialize = function() {
   };
 
   // ------------ Initialize Content Layers ------------
-  live.flashes = new L.LayerGroup();
-  live.nldn =  new L.LayerGroup();
-  live.sats =  new L.LayerGroup();
+  // Layer Groups
+  live.gld_group = new L.LayerGroup();
+  live.nldn_group =  new L.LayerGroup();
+  live.sat_group =  new L.LayerGroup();
   live.daynite = new L.LayerGroup();
-  live.boxes =  new L.LayerGroup();
+  live.box_group =  new L.LayerGroup();
+
+  // Current layers
   live.flash_layer = L.geoJson();
   live.nldn_layer = L.geoJson();
   live.sat_layer = L.geoJson();
@@ -47,11 +51,11 @@ live.initialize = function() {
 
 
   live.layer_list = {
-    "Lightning (GLD)": live.flashes,
-    "Lightning (NLDN)": live.nldn,
-    "Satellites": live.sats,
+    "Lightning (GLD)": live.gld_group,
+    "Lightning (NLDN)": live.nldn_group,
+    "Satellites": live.sat_group,
     "Day/Night": live.daynite,
-    "Bounding Boxes": live.boxes,
+    "Bounding Boxes": live.box_group,
   };
     /*
     Bounding box.
@@ -65,8 +69,8 @@ live.initialize = function() {
                                      center:[0, 0],
                                      zoom: 3,
                                      maxBounds: live.bounds,
-                                     layers: [live.base_tile, live.flashes, live.nldn,
-                                      live.sats, live.daynite, live.boxes]
+                                     layers: [live.base_tile, live.gld_group, live.nldn_group,
+                                      live.sat_group, live.daynite, live.box_group]
                                    });
 
   // keep us centered on a single copy
@@ -79,7 +83,6 @@ live.initialize = function() {
   live.total_gld = 0;
   live.total_nldn = 0;
 
-  live.data.last_req_time = null;
 
   // live.data.GLD = [];
   // live.data.NLDN = [];
@@ -105,9 +108,13 @@ live.sat_icon = L.icon({
 // --------- GLD ----------
 live.addGLD = function() {
   live.total_gld = 0;
+  
   live.flash_layer.removeEventListener();
   live.flash_layer.unbindPopup;
   live.map.removeLayer(live.flash_layer);
+//  live.map.removeLayer(live.gld_group.getLayers());
+//  live.flash_layer.removeLayer(live.map);
+
   live.flash_layer = null;
   live.flash_layer = L.geoJson(live.data.raw,{
       filter: function(feature) {
@@ -128,12 +135,49 @@ live.addGLD = function() {
           fillColor: "#ff7800",
           color: "#000",
           weight: 0.5,
-          opacity: 1,
+          opacity: 0.6,
           fillOpacity: 0.6
         });
           return circles;
       }
-    }).addTo(live.flashes);
+    }).addTo(live.gld_group);
+}
+
+// --------- NLDN ----------
+live.addNLDN = function() {
+  live.total_nldn = 0;
+  live.nldn_layer.removeEventListener();
+  live.nldn_layer.unbindPopup;
+  live.map.removeLayer(live.nldn_layer);
+  //live.map.removeLayer(live.nldn_group.getLayers());
+
+//  live.nldn_layer.removeLayer(live.map);
+  live.nldn_layer = null;
+  live.nldn_layer = L.geoJson(live.data.raw,{
+      filter: function(feature) {
+              var filt = (feature.name == "NLDN");
+              if (filt) { live.total_nldn += 1;}
+        return filt},
+
+      onEachFeature: function (feature, layer) {
+        var popupOptions = {maxWidth: 500};
+        layer.bindPopup("<b>Time: </b>" + feature.time + "<br>" +
+                        "<b>Location:</b> "+ feature.geometry.coordinates + "<br>" +
+                        "<b>Peak Current:</b>" + feature.kA,popupOptions);
+    },
+      
+      pointToLayer: function (feature, latlng) {
+          var circles = L.circleMarker(latlng, {
+          radius: feature.radius,
+          fillColor: "#ffff00",
+          color: "#000",
+          weight: 0.5,
+          opacity: 0.6,
+          fillOpacity: 0.6
+        });
+          return circles;
+      }
+    }).addTo(live.nldn_group);
 }
 
 // ---------- Sats ------------
@@ -142,6 +186,9 @@ live.addSats = function () {
   live.sat_layer.removeEventListener();
   live.sat_layer.unbindPopup;
   live.map.removeLayer(live.sat_layer);
+  //live.map.removeLayer(live.sat_group.getLayers());
+
+//  live.sat_layer.removeLayer(live.map);
   live.sat_layer = null;
   live.sat_layer = L.geoJson(live.data.raw,{
       filter: function(feature) {
@@ -161,7 +208,7 @@ live.addSats = function () {
         });
        return satmarks;
       }
-      }).addTo(live.sats);
+      }).addTo(live.sat_group);
 }
 
 // --------- Add Bounding Boxes -----------
@@ -170,6 +217,10 @@ live.addBoxes = function () {
   live.box_layer.removeEventListener();
   live.box_layer.unbindPopup;
   live.map.removeLayer(live.box_layer);
+  //live.map.removeLayer(live.box_group.getLayers());
+
+//  live.box_layer.removeLayer(live.map);
+
 
   live.box_layer = null;
   live.box_layer = L.geoJson(live.data.raw,{
@@ -191,7 +242,7 @@ live.addBoxes = function () {
          opacity: 0.4,
          fillOpacity: 0.2};
          return feet}
-     }).addTo(live.boxes);
+     }).addTo(live.box_group);
 }
 
 live.updateTerminator = function () {
@@ -205,10 +256,11 @@ live.updateTerminator = function () {
 //      Main update function -- Runs each time new data is received:
 // ------------------------------------------------------------------------
 live.update_map = function() {
-  console.log('Pulled fresh points')
+  //console.log('Pulled fresh points')
   //console.log(this.resp)
 
   live.addBoxes();
+  live.addNLDN();
   live.addGLD();
   live.addSats();
   live.updateTerminator();
@@ -217,8 +269,8 @@ live.update_map = function() {
 //  live.disp_status((live.data.GLD.length/60.0).toPrecision(3) + " flashes / min")
   live.disp_status((live.total_gld/60.0).toPrecision(3) + " flashes / min")
 
-  console.log("Total GLD: " + live.total_gld);
-  console.log("Total Sats: " + live.total_sats);
+  //console.log("Total GLD: " + live.total_gld);
+  //console.log("Total Sats: " + live.total_sats);
   
 };
 
@@ -265,11 +317,12 @@ live.ws.binaryType = "arraybuffer";
 
 live.ws.onopen = function() {
   live.disp_status('Connected');
-  console.log('Connected!');
+  //console.log('Connected!');
 }
 
 live.ws.onmessage = function(event) {
-  console.log("message received: ");
+  //console.log("message received: ");
+  live.disp_status("message received: ");
   var msg = JSON.parse(event.data);
   live.data.load(msg); 
   live.update_map();
@@ -277,10 +330,10 @@ live.ws.onmessage = function(event) {
   }
 
 live.ws.onclose = function() {
-  console.log('Connection closed');
+  live.disp_status('Connection closed');
 }
 live.ws.request_update = function(time) {
   live.data.last_req_time = time;
-  console.log(live.data.last_req_time)
+  //console.log(live.data.last_req_time)
   live.ws.send(live.data.last_req_time);
 }
