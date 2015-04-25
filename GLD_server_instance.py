@@ -37,6 +37,8 @@ class GLD_server_instance(object):
     self.NLDN_root = 'alex/array/home/Vaisala/feed_data/NLDN';
     #tail_len = 20000;
     self.window_delta = datetime.timedelta(0,0,0,0,1,0); # y,m,d,H,M,S
+    self.lat_lim = [-200, 200]
+    self.lon_lim = [-100, 100]
     
     # Firebird TLEs
     self.FB4_line1 = "1 40378U 15003C   15100.58013485  .00011386  00000-0  58112-3 0  9991";
@@ -56,6 +58,9 @@ class GLD_server_instance(object):
     self.do_GLD = True
     self.do_NLDN = True
     self.do_sats = True
+    self.return_JSON = True
+
+
 
     # Satellite initialization
     #sat = Firebird(FB4_line1, FB4_line2, "Firebird 4")
@@ -83,21 +88,17 @@ class GLD_server_instance(object):
     if self.do_sats:
       self.Firebird_4.compute(self.plottime)
       self.Firebird_3.compute(self.plottime)
-          # Create record for satellites
-      #curr_sat_pos = sat.coords_at(plotdate)
-
-      for sat in [self.Firebird_3, self.Firebird_4]:
-        geo_json.extend( [ {"type": "Feature",
-                    "name": "Satellite",
-                    "satname": sat.name,
-                        "geometry": {
-                            "type": "Point",
-                            "coordinates": sat.coords,
-                            }, "time":self.plottime.isoformat()
-                          } ] )
-
-
-
+     
+      if self.return_JSON:
+        for sat in [self.Firebird_3, self.Firebird_4]:
+          geo_json.extend( [ {"type": "Feature",
+                      "name": "Satellite",
+                      "satname": sat.name,
+                          "geometry": {
+                              "type": "Point",
+                              "coordinates": sat.coords,
+                              }, "time":self.plottime.isoformat()
+                            } ] )
 
     # ----- GLD ----------------
     if self.do_GLD:
@@ -106,27 +107,35 @@ class GLD_server_instance(object):
       if new_flashes is not None:
 
         if self.do_sats:
-          bb_fb4 = check_flyover(self.Firebird_4, new_flashes, new_times)
-          bb_fb3 = check_flyover(self.Firebird_3, new_flashes, new_times)
-          geo_json.extend(bb_fb4)
-          geo_json.extend(bb_fb3)
+          bb_fb4,_,_ = check_flyover(self.Firebird_4, new_flashes, new_times, td = self.window_delta,
+                  lat_lim = self.lat_lim, lon_lim = self.lon_lim, JSON = self.return_JSON)
+          bb_fb3,_,_ = check_flyover(self.Firebird_3, new_flashes, new_times, td = self.window_delta,
+                  lat_lim = self.lat_lim, lon_lim = self.lon_lim,  JSON =self.return_JSON)
+
+          if self.return_JSON:
+            geo_json.extend(bb_fb4)
+            geo_json.extend(bb_fb3)
 
 
-        radii = np.round(np.log2(abs(new_flashes[:,self.mag_ind])))
+        if self.return_JSON:
 
-        # Create record for flashes
-        gld_json = [ {"type": "Feature",
-                      "name": "GLD",
-                        "geometry": {
-                            "type": "Point",
-                            "coordinates": [lon,lat],
-                            }, "radius": radius,
-                               "kA": kA,
-                               "time": dt.isoformat()}
-                        for lon,lat,radius,kA,dt in zip(new_flashes[:,self.lon_ind],
-                                                        new_flashes[:,self.lat_ind], 
-                                                        radii, new_flashes[:,self.mag_ind], new_times) ]
-        geo_json.extend(gld_json)
+
+
+          radii = np.round(np.log2(abs(new_flashes[:,self.mag_ind])))
+
+          # Create record for flashes
+          gld_json = [ {"type": "Feature",
+                        "name": "GLD",
+                          "geometry": {
+                              "type": "Point",
+                              "coordinates": [lon,lat],
+                              }, "radius": radius,
+                                 "kA": kA,
+                                 "time": dt.isoformat()}
+                          for lon,lat,radius,kA,dt in zip(new_flashes[:,self.lon_ind],
+                                                          new_flashes[:,self.lat_ind], 
+                                                          radii, new_flashes[:,self.mag_ind], new_times) ]
+          geo_json.extend(gld_json)
       
 
 
@@ -134,25 +143,43 @@ class GLD_server_instance(object):
     if self.do_NLDN:
       new_flashes, new_times = self.N.load_flashes(time_in, self.window_delta)
       if new_flashes is not None:
-        radii = np.round(np.log2(abs(new_flashes[:,self.mag_ind])))
-            # Create record for flashes
-        nldn_json = [ {"type": "Feature",
-                      "name": "NLDN",
-                        "geometry": {
-                            "type": "Point",
-                            "coordinates": [lon,lat],
-                            }, "radius": radius,
-                               "kA": kA,
-                               "time": dt.isoformat()}
-                        for lon,lat,radius,kA,dt in zip(new_flashes[:,self.lon_ind],
-                                                        new_flashes[:,self.lat_ind], 
-                                                        radii, new_flashes[:,self.mag_ind], new_times) ]
-        geo_json.extend(nldn_json) 
+        if self.return_JSON:
+          radii = np.round(np.log2(abs(new_flashes[:,self.mag_ind])))
+              # Create record for flashes
+          nldn_json = [ {"type": "Feature",
+                        "name": "NLDN",
+                          "geometry": {
+                              "type": "Point",
+                              "coordinates": [lon,lat],
+                              }, "radius": radius,
+                                 "kA": kA,
+                                 "time": dt.isoformat()}
+                          for lon,lat,radius,kA,dt in zip(new_flashes[:,self.lon_ind],
+                                                          new_flashes[:,self.lat_ind], 
+                                                          radii, new_flashes[:,self.mag_ind], new_times) ]
+          geo_json.extend(nldn_json) 
 
 
 
 
 
+    if self.return_JSON:
+      return json.dumps(geo_json, ensure_ascii = False).encode('utf8')  
+
+
+
+  def log_sightings(self, fb3_file=None, fb4_file=None, JSON=False):
+
+    new_flashes, new_times = self.G.load_flashes(self.plottime, self.window_delta)
+
+    if new_flashes is not None:
+      if fb3_file is not None:
+        self.Firebird_3.compute(self.plottime)
+        check_flyover(self.Firebird_3, new_flashes, new_times, td = self.window_delta,
+                  lat_lim = self.lat_lim, lon_lim = self.lon_lim, logfile=fb3_file)
+
+      if fb4_file is not None:
+        self.Firebird_4.compute(self.plottime)
+        check_flyover(self.Firebird_4, new_flashes, new_times, td = self.window_delta,
+                  lat_lim = self.lat_lim, lon_lim = self.lon_lim, logfile=fb4_file)
     
-    return json.dumps(geo_json, ensure_ascii = False).encode('utf8')  
-

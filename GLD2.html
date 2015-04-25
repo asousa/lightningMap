@@ -81,6 +81,9 @@
 
       <div class="title-bar" id="date_select" style="width=300px; height=5%" align=middle>
       <button id = "submit" onclick='request_button();'>Request Data</button>
+      <button id = "prev" onclick='prev_button();'>Prev</button>
+      <button id = "next" onclick='next_button();'>Next</button>
+
       <input id="datetime24" type="text" data-format="YYYY-MM-DDTHH:mm:ss" data-template=" MM / DD / YYYY     HH : mm . ss" name="datetime">
       <input id="live_cb" type="checkbox" onclick='live_updates();'><font color=#fff>Live feed</font>
       </div>
@@ -104,10 +107,24 @@ function request_button() {
   live.ws.request_update($('#datetime24').combodate('getValue','YYYY-MM-DDTHH:mm:ss'));
 }
 
+function prev_button() {
+  var currtime = $('#datetime24').combodate("getValue",null);
+
+  console.log(currtime);
+  $('#datetime24').combodate("setValue",currtime.subtract(1,'minutes'));
+  //request_button();
+}
+
+
+function next_button() {
+  var currtime = $('#datetime24').combodate("getValue",null);
+  $('#datetime24').combodate("setValue",currtime.add(1,'minutes'));
+  //request_button();
+}
 
 live.initialize();
 
-$('#datetime24').combodate("setValue",moment.utc().subtract(1,'minutes'));
+$('#datetime24').combodate("setValue",moment.utc().subtract(5,'minutes'));
 
 // // // Repeated loop for live feed: Runs when "live feed" is checked
 var live_timeout;
@@ -116,6 +133,10 @@ function live_updates() {
   if ($('#live_cb').is(':checked')) {
     live.disp_status('Starting live feed');
     $('#submit').hide();
+    $('#prev').hide();
+    $('#next').hide();
+
+
     live_timeout = setInterval( function() {
       // console.log(moment.utc());
       // Keep the requests on a 5-minute delay
@@ -129,24 +150,27 @@ function live_updates() {
   else {
     live.disp_status('Stopping live feed');
     $('#submit').show();
+    $('#prev').show();
+    $('#next').show();
+
     // map.remove();
     window.clearInterval(live_timeout);
   }
 }
 
 
-// THIS IS REALLY SHAMEFUL but it seems to be happy
-// (Previous layers in Leaflet aren't happily garbage-collected:
-//  Stopgap measure to make it happen.)
-var refresher = setInterval( function() {
- if ($('#live_cb').is(':checked')) {
-    //console.log("Such shame, very hack");
-    live.map.remove();
-    live.initialize();
-    live.update_map();
-    //request_button();
-  }
-}, 30000); // HACK
+// // THIS IS REALLY SHAMEFUL but it seems to be happy
+// // (Previous layers in Leaflet aren't happily garbage-collected:
+// //  Stopgap measure to make it happen.)
+// var refresher = setInterval( function() {
+//  if ($('#live_cb').is(':checked')) {
+//     //console.log("Such shame, very hack");
+//     live.map.remove();
+//     live.initialize();
+//     live.update_map();
+//     //request_button();
+//   }
+// }, 30000); // HACK
 
 
  </script>

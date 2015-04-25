@@ -109,9 +109,10 @@ live.sat_icon = L.icon({
 live.addGLD = function() {
   live.total_gld = 0;
   
-  live.flash_layer.removeEventListener();
-  live.flash_layer.unbindPopup;
+  // live.flash_layer.removeEventListener();
+  // live.flash_layer.unbindPopup;
   live.map.removeLayer(live.flash_layer);
+  live.gld_group.clearLayers();
 //  live.map.removeLayer(live.gld_group.getLayers());
 //  live.flash_layer.removeLayer(live.map);
 
@@ -146,9 +147,10 @@ live.addGLD = function() {
 // --------- NLDN ----------
 live.addNLDN = function() {
   live.total_nldn = 0;
-  live.nldn_layer.removeEventListener();
-  live.nldn_layer.unbindPopup;
+  // live.nldn_layer.removeEventListener();
+  // live.nldn_layer.unbindPopup;
   live.map.removeLayer(live.nldn_layer);
+  live.nldn_group.clearLayers();
   //live.map.removeLayer(live.nldn_group.getLayers());
 
 //  live.nldn_layer.removeLayer(live.map);
@@ -183,9 +185,10 @@ live.addNLDN = function() {
 // ---------- Sats ------------
 live.addSats = function () {
   live.total_sats = 0;
-  live.sat_layer.removeEventListener();
-  live.sat_layer.unbindPopup;
+  // live.sat_layer.removeEventListener();
+  // live.sat_layer.unbindPopup;
   live.map.removeLayer(live.sat_layer);
+  live.sat_group.clearLayers();
   //live.map.removeLayer(live.sat_group.getLayers());
 
 //  live.sat_layer.removeLayer(live.map);
@@ -214,18 +217,18 @@ live.addSats = function () {
 // --------- Add Bounding Boxes -----------
 live.addBoxes = function () {
   live.total_boxes = 0;
-  live.box_layer.removeEventListener();
-  live.box_layer.unbindPopup;
+  // live.box_layer.removeEventListener();
+  // live.box_layer.unbindPopup;
   live.map.removeLayer(live.box_layer);
+  live.box_group.clearLayers();
   //live.map.removeLayer(live.box_group.getLayers());
 
 //  live.box_layer.removeLayer(live.map);
-
-
+  
   live.box_layer = null;
   live.box_layer = L.geoJson(live.data.raw,{
     filter: function(feature) {
-        var filt = (feature.name == "box");
+        var filt = (feature.name == "Box");
         if (filt) { live.total_boxes += 1;}
       return filt},
 
@@ -269,8 +272,9 @@ live.update_map = function() {
 //  live.disp_status((live.data.GLD.length/60.0).toPrecision(3) + " flashes / min")
   live.disp_status((live.total_gld/60.0).toPrecision(3) + " flashes / min")
 
-  //console.log("Total GLD: " + live.total_gld);
-  //console.log("Total Sats: " + live.total_sats);
+  console.log("Total GLD: " + live.total_gld);
+  console.log("Total Sats: " + live.total_sats);
+  console.log("Total boxes: " + live.total_boxes);
   
 };
 
