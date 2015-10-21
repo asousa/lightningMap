@@ -6,6 +6,8 @@ live.data = {};
 live.data.raw = null;
 live.data.last_req_time = null;
 
+live.persist = null;
+
 live.initialize = function() {
   // --------------- Initialize Base Tiles ---------------
   live.base_tile = L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {                      // OSM basic map
@@ -262,6 +264,9 @@ live.update_map = function() {
   //console.log('Pulled fresh points')
   //console.log(this.resp)
 
+//  console.log(live.map.hasLayer(live.gld_group));
+
+
   live.addBoxes();
   live.addNLDN();
   live.addGLD();
@@ -270,7 +275,7 @@ live.update_map = function() {
 
   // // disp_status(Object.keys(resp).length + " entries")
 //  live.disp_status((live.data.GLD.length/60.0).toPrecision(3) + " flashes / min")
-  live.disp_status((live.total_gld/60.0).toPrecision(3) + " flashes / min")
+  live.disp_status("GLD: " + (live.total_gld/live.persist).toPrecision(3) + " flashes / min")
 
   console.log("Total GLD: " + live.total_gld);
   console.log("Total Sats: " + live.total_sats);
@@ -312,6 +317,23 @@ live.disp_status = function(msg) {
   document.getElementById(live.status_div).innerHTML = msg;
 };
 
+// ----------------- Get list of visible layer groups ----
+live.get_layer_visibility = function() {
+
+  // return [live.map.hasLayer(live.gld_group),
+  //         live.map.hasLayer(live.nldn_group),
+  //         live.map.hasLayer(live.sat_group),
+  //         live.map.hasLayer(live.box_group)];
+  //live.map.hasLayer(live.nldn_group);
+  return {"GLD": live.map.hasLayer(live.gld_group),
+          "NLDN": live.map.hasLayer(live.nldn_group),
+          "Sats": live.map.hasLayer(live.sat_group),
+          "Boxes": live.map.hasLayer(live.box_group)};
+}
+
+
+
+
 
 // ----------------- WebSocket stuff: -------------------
 
@@ -336,8 +358,9 @@ live.ws.onmessage = function(event) {
 live.ws.onclose = function() {
   live.disp_status('Connection closed');
 }
-live.ws.request_update = function(time) {
-  live.data.last_req_time = time;
+live.ws.request_update = function(msg) {
+  live.data.last_req_time = msg.time;
   //console.log(live.data.last_req_time)
-  live.ws.send(live.data.last_req_time);
+  //live.ws.send(live.data.last_req_time);
+  live.ws.send(JSON.stringify(msg));
 }

@@ -85,11 +85,31 @@
       <button id = "next" onclick='next_button();'>Next</button>
 
       <input id="datetime24" type="text" data-format="YYYY-MM-DDTHH:mm:ss" data-template=" MM / DD / YYYY     HH : mm . ss" name="datetime">
+      <font color = #fff>
+      Persist</font>
+      <select id="interval" class="num_pulldown" onchange='live.persist = value'>
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="30">30</option>
+        <option value="60">60</option>
+        <option value="90">90</option>
+      </select>
+
       <input id="live_cb" type="checkbox" onclick='live_updates();'><font color=#fff>Live feed</font>
+
+
       </div>
       <div id="status"> Initializing...</div>
 
 <script>
+
+// $(function(){
+//     var $select = $(".num_pulldown");
+//     for (i=10;i<=1;i++){
+//         $select.append($('<option></option>').val(i).html(i))
+//     }
+// });​
+
 
 //  Formatting for Date / Time input
 $(document.getElementById('datetime24')).combodate({
@@ -104,7 +124,17 @@ function request_button() {
   if (live.ws.readyState == 0) {
     live.ws.open();
   }
-  live.ws.request_update($('#datetime24').combodate('getValue','YYYY-MM-DDTHH:mm:ss'));
+  var msg = {};
+  msg.time = $('#datetime24').combodate('getValue','YYYY-MM-DDTHH:mm:ss');
+  msg.enables = live.get_layer_visibility();
+  msg.persist = live.persist;
+
+  //console.log(msg)
+  live.ws.request_update(msg);
+  // Main request command:
+//   live.ws.request_update({"time":$('#datetime24').combodate('getValue','YYYY-MM-DDTHH:mm:ss')});
+//                          //+ live.get_layer_visibility() + "\n"
+// //                         + $('#interval').val());
 }
 
 function prev_button() {
@@ -123,6 +153,7 @@ function next_button() {
 }
 
 live.initialize();
+live.persist = $('#interval').val();
 
 $('#datetime24').combodate("setValue",moment.utc().subtract(5,'minutes'));
 
@@ -144,7 +175,7 @@ function live_updates() {
       
       request_button();
 
-    },5000);  // 10-second interval
+    },5000);  // refresh interval (in ms)
   } 
 
   else {
