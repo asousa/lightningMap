@@ -79,6 +79,7 @@ class GLD_server_instance(object):
     ''' Received a message! What do?? '''
     msg_obj = json.loads(message)
 
+    print msg_obj
     if 'enables' in msg_obj:
       self.do_GLD = msg_obj["enables"]["GLD"]
       self.do_NLDN =msg_obj["enables"]["NLDN"]
@@ -107,6 +108,7 @@ class GLD_server_instance(object):
    
     if self.return_JSON:
       for sat in self.sats: #[self.Firebird_3, self.Firebird_4]:
+        print sat.coords
         geo_json.extend( [ {"type": "Feature",
                     "name": "Satellite",
                     "satname": sat.name,
@@ -144,6 +146,7 @@ class GLD_server_instance(object):
           
         if self.return_JSON:
 
+          # print new_flashes
 
 
           radii = np.round(np.log2(abs(new_flashes[:,self.mag_ind])))
@@ -162,7 +165,7 @@ class GLD_server_instance(object):
                                                           radii, new_flashes[:,self.mag_ind], new_times) ]
           geo_json.extend(gld_json)
       
-
+          # print geo_json
 
     # -------- NLDN ----------
     if self.do_NLDN:
@@ -189,7 +192,7 @@ class GLD_server_instance(object):
 
 
     if self.return_JSON:
-      return json.dumps(geo_json, ensure_ascii = False).encode('utf8')  
+      return json.dumps(geo_json, ensure_ascii = True).encode('utf8')  
 
 
 
