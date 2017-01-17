@@ -5,9 +5,13 @@ live.ws_addr = "ws://llamas.stanford.edu:9000";
 live.data = {};
 live.data.raw = null;
 live.data.last_req_time = null;
+live.data.tmin = null;
+live.data.tmax = null;
 
 live.persist = null;
-
+live.livefeed = false;
+live.update_interval = 10;
+live.animate = null; 
 live.initialize = function() {
   // --------------- Initialize Base Tiles ---------------
   live.base_tile = L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {                      // OSM basic map
@@ -16,22 +20,22 @@ live.initialize = function() {
       attribution: 'Map tiles by <a href="http://www.mapbox.com/m">Mapbox</a> Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
   });
 
-  // live.dark_tile = L.tileLayer('http://{s}.tiles.mapbox.com/v3/mapbox.control-room/{z}/{x}/{y}.png', {   // Dark map
-  //     maxZoom: 18,
-  //     minZoom: 1,
-  //     attribution: 'Map tiles by <a href="http://www.mapbox.com/m">Mapbox</a> Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
-  // });
+  live.dark_tile = L.tileLayer('http://{s}.tiles.mapbox.com/v3/mapbox.control-room/{z}/{x}/{y}.png', {   // Dark map
+      maxZoom: 18,
+      minZoom: 1,
+      attribution: 'Map tiles by <a href="http://www.mapbox.com/m">Mapbox</a> Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
+  });
 
-  // live.toner_tile = L.tileLayer('http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.jpg', {                     // Highest Contrast
-  //     maxZoom: 18,
-  //     minZoom: 1,
-  //     attribution: 'Map tiles by <a href="http://www.mapbox.com/m">Mapbox</a> Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
-  // });
+ // live.toner_tile = L.tileLayer('http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.jpg', {                     // Highest Contrast
+ //     maxZoom: 18,
+ //     minZoom: 1,
+ //     attribution: 'Map tiles by <a href="http://www.mapbox.com/m">Mapbox</a> Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
+ // });
 
   live.baseLayer = {
-    "Light": live.base_tile
-    // "Dark": live.dark_tile,
-    // "Xerox": live.toner_tile
+    "Light": live.base_tile,
+    "Dark": live.dark_tile
+  //  "Xerox": live.toner_tile
   };
 
   // ------------ Initialize Content Layers ------------
@@ -111,17 +115,26 @@ live.sat_icon = L.icon({
 live.addGLD = function() {
   live.total_gld = 0;
   
+  
   // live.flash_layer.removeEventListener();
   // live.flash_layer.unbindPopup;
   live.map.removeLayer(live.flash_layer);
   live.gld_group.clearLayers();
 //  live.map.removeLayer(live.gld_group.getLayers());
 //  live.flash_layer.removeLayer(live.map);
-
+  //curtime = moment(live.data.last_req_time).utc().unix());
+  console.log(moment(live.data.last_req_time).unix());
   live.flash_layer = null;
   live.flash_layer = L.geoJson(live.data.raw,{
       filter: function(feature) {
               var filt = (feature.name == "GLD");
+              // var m = moment(feature.time);
+              // if (live.livefeed) {
+              // 	var tfilt = (m.utc().isBefore(live.data.tmax) && m.utc().isAfter(live.data.tmin));
+              // 	filt = filt && tfilt;
+              // }
+
+              //console.log(moment(feature.time).utc().isBefore(live.data.last_req_time));
               if (filt) { live.total_gld += 1;}
         return filt},
 
@@ -257,25 +270,30 @@ live.updateTerminator = function () {
 }
 
 
+live.cleanGLD = function() {
+
+
+}
+
+
+
 // ------------------------------------------------------------------------
 //      Main update function -- Runs each time new data is received:
 // ------------------------------------------------------------------------
 live.update_map = function() {
   //console.log('Pulled fresh points')
-  //console.log(this.resp)
 
-//  console.log(live.map.hasLayer(live.gld_group));
+	  // Single time request	
+	  live.addBoxes();
+	  live.addNLDN();
+	  live.addGLD();
+	  live.addSats();
+	  live.updateTerminator();
 
-
-  live.addBoxes();
-  live.addNLDN();
-  live.addGLD();
-  live.addSats();
-  live.updateTerminator();
 
   // // disp_status(Object.keys(resp).length + " entries")
-//  live.disp_status((live.data.GLD.length/60.0).toPrecision(3) + " flashes / min")
-  live.disp_status("GLD: " + (live.total_gld/live.persist).toPrecision(3) + " flashes / min")
+  //  live.disp_status((live.data.GLD.length/60.0).toPrecision(3) + " flashes / min")
+  live.disp_status("GLD: " + (live.total_gld/live.persist).toPrecision(3) + " flashes / sec")
 
   console.log("Total GLD: " + live.total_gld);
   console.log("Total Sats: " + live.total_sats);
@@ -283,34 +301,29 @@ live.update_map = function() {
   
 };
 
-
 // ------------------------------------------------------------------------
-//     Receive new entries, sort into appropriate lists:
+//      Main update function -- Runs each time new data is received:
 // ------------------------------------------------------------------------
-live.data.load = function(msg) {
-  // live.data.GLD = [];
-  // live.data.NLDN = [];
-  // live.data.sats = [];
-  // live.data.boxes = [];
-  // // // console.log(msg);
-  // // for (var m in msg) {
-  // //   if (msg[m].name == "GLD") {    
-  // //       live.data.GLD.push(msg[m]);
-  // //   } else if (msg[m].name == 'NLDN') {
-  // //       live.data.NLDN.push(msg[m]);
-  // //   } else if (msg[m].name == 'Satellite') {
-  // //       live.data.sats.push(msg[m]);
-  // //   } else if (msg[m].name == 'box') {
-  // //       live.data.boxes.push(msg[m]);
-  // //   }
-  // // }
+live.animate_map = function() {
+  //console.log('Pulled fresh points')
+  	// live.data.tmax = moment(live.data.last_req_time);
+  	// live.data.tmin = moment(live.data.tmax).subtract(live.persist, 'seconds');
 
-  live.data.raw = null;
-  // console.log(live.total_gld);
-  // console.log(live.total_sats);
-  // console.log(live.total_boxes);
-  live.data.raw = msg;
-}
+	live.data.tmax = moment(live.data.last_req_time);
+	console.log(live.data.tmax.toISOString(), live.data.tmin.toISOString());
+	live.update_map();
+};
+
+
+
+
+// // ------------------------------------------------------------------------
+// //     Receive new entries, sort into appropriate lists:
+// // ------------------------------------------------------------------------
+// live.data.load = function(msg) {
+//   live.data.raw = null;
+//   live.data.raw = msg;
+// }
 
 // Display status messages
 live.disp_status = function(msg) {
@@ -346,14 +359,20 @@ live.ws.onopen = function() {
   //console.log('Connected!');
 }
 
+// Runs whenever we receive a new message:
 live.ws.onmessage = function(event) {
   //console.log("message received: ");
   live.disp_status("message received: ");
   var msg = JSON.parse(event.data);
-  live.data.load(msg); 
-  live.update_map();
+  //live.data.load(msg);
+  live.data.raw = msg;
+
+  //if (live.livefeed == false) {
+  	live.update_map();
+  //};
   msg = null; 
-  }
+  };
+
 
 live.ws.onclose = function() {
   live.disp_status('Connection closed');
@@ -364,3 +383,5 @@ live.ws.request_update = function(msg) {
   //live.ws.send(live.data.last_req_time);
   live.ws.send(JSON.stringify(msg));
 }
+
+

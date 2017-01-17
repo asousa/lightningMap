@@ -35,11 +35,19 @@ class GLD_server_instance(object):
     # self.FB3_line2 = "2 40377 099.1226 129.9288 0163094 091.7149 270.2788 15.06141595 11435";
 
     # Retrieved 10.20.2015
-    self.FB4_line1 = "1 40378U 15003C   15293.75287141  .00010129  00000-0  48835-3 0  9990";
-    self.FB4_line2 = "2 40378  99.1043 350.5299 0153633 201.4233 158.0516 15.09095095 39471";
+    # self.FB4_line1 = "1 40378U 15003C   15293.75287141  .00010129  00000-0  48835-3 0  9990";
+    # self.FB4_line2 = "2 40378  99.1043 350.5299 0153633 201.4233 158.0516 15.09095095 39471";
 
-    self.FB3_line1 = "1 40377U 15003B   15293.75560501  .00010189  00000-0  49167-3 0  9998";
-    self.FB3_line2 = "2 40377  99.1045 350.5247 0153380 201.4540 158.0211 15.09095594 39471";
+    # self.FB3_line1 = "1 40377U 15003B   15293.75560501  .00010189  00000-0  49167-3 0  9998";
+    # self.FB3_line2 = "2 40377  99.1045 350.5247 0153380 201.4540 158.0211 15.09095594 39471";
+
+    # Get the freshest of TLEs:
+    with open('fb3.tle','r') as file:
+      self.FB3_line1 = file.readline()
+      self.FB3_line2 = file.readline()
+    with open('fb4.tle','r') as file:
+      self.FB4_line1 = file.readline()
+      self.FB4_line2 = file.readline()
 
     self.lat_ind = 7;
     self.lon_ind = 8;

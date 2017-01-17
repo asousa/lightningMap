@@ -88,13 +88,16 @@
       <font color = #fff>
       Persist</font>
       <select id="interval" class="num_pulldown" onchange='live.persist = value'>
+        <option value="1">1</option>
+        <option value="2">2</option>
         <option value="5">5</option>
         <option value="10">10</option>
         <option value="30">30</option>
         <option value="60">60</option>
         <option value="90">90</option>
       </select>
-
+	 <font color = #fff>
+	Sec</font>
       <input id="live_cb" type="checkbox" onclick='live_updates();'><font color=#fff>Live feed</font>
 
 
@@ -114,6 +117,7 @@
 //  Formatting for Date / Time input
 $(document.getElementById('datetime24')).combodate({
     minYear: 2012,
+    maxYear: 2016,
     minuteStep: 1,
     secondStep: 1,
     smartDays: true,
@@ -141,15 +145,15 @@ function prev_button() {
   var currtime = $('#datetime24').combodate("getValue",null);
 
   console.log(currtime);
-  $('#datetime24').combodate("setValue",currtime.subtract(1,'minutes'));
-  //request_button();
+  $('#datetime24').combodate("setValue",currtime.subtract($('#interval').val(),'seconds'));
+  request_button();
 }
 
 
 function next_button() {
   var currtime = $('#datetime24').combodate("getValue",null);
-  $('#datetime24').combodate("setValue",currtime.add(1,'minutes'));
-  //request_button();
+  $('#datetime24').combodate("setValue",currtime.add($('#interval').val(),'seconds'));
+  request_button();
 }
 
 live.initialize();
@@ -161,13 +165,17 @@ $('#datetime24').combodate("setValue",moment.utc().subtract(5,'minutes'));
 var live_timeout;
 
 function live_updates() {
+  
+  live.livefeed = $('#live_cb').is(':checked');
+
   if ($('#live_cb').is(':checked')) {
     live.disp_status('Starting live feed');
     $('#submit').hide();
     $('#prev').hide();
     $('#next').hide();
 
-
+    
+    // Start requests for new data
     live_timeout = setInterval( function() {
       // console.log(moment.utc());
       // Keep the requests on a 5-minute delay
@@ -176,9 +184,13 @@ function live_updates() {
       request_button();
 
     },5000);  // refresh interval (in ms)
-  } 
 
-  else {
+    // // Start animation refreshes
+    // live_animate = setInterval( function() {
+    //   live.animate_map();
+    // },1000);
+
+  } else {
     live.disp_status('Stopping live feed');
     $('#submit').show();
     $('#prev').show();
@@ -186,6 +198,7 @@ function live_updates() {
 
     // map.remove();
     window.clearInterval(live_timeout);
+    //window.clearInterval(live_animate);
   }
 }
 
