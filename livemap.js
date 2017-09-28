@@ -363,7 +363,7 @@ live.ws.onopen = function() {
 live.ws.onmessage = function(event) {
   //console.log("message received: ");
   live.disp_status("message received: ");
-  live.disp_status(event.data);
+ live.disp_status(event.data);
   var msg = JSON.parse(event.data);
   //live.data.load(msg);
   live.data.raw = msg;

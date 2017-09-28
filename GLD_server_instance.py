@@ -79,7 +79,7 @@ class GLD_server_instance(object):
     ''' Received a message! What do?? '''
     msg_obj = json.loads(message)
 
-    print msg_obj
+    # print msg_obj
     if 'enables' in msg_obj:
       self.do_GLD = msg_obj["enables"]["GLD"]
       self.do_NLDN =msg_obj["enables"]["NLDN"]
@@ -100,23 +100,23 @@ class GLD_server_instance(object):
     geo_json = []
 
     # ------ Satellites --------
-    #if self.do_sats:
-    for sat in self.sats:
-      sat.compute(self.plottime)
-      # self.Firebird_4.compute(self.plottime)
-      # self.Firebird_3.compute(self.plottime)
-   
-    if self.return_JSON:
-      for sat in self.sats: #[self.Firebird_3, self.Firebird_4]:
-        print sat.coords
-        geo_json.extend( [ {"type": "Feature",
-                    "name": "Satellite",
-                    "satname": sat.name,
-                        "geometry": {
-                            "type": "Point",
-                            "coordinates": sat.coords,
-                            }, "time":self.plottime.isoformat()
-                          } ] )
+    if self.do_sats:
+      for sat in self.sats:
+        sat.compute(self.plottime)
+        # self.Firebird_4.compute(self.plottime)
+        # self.Firebird_3.compute(self.plottime)
+     
+      if self.return_JSON:
+        for sat in self.sats: #[self.Firebird_3, self.Firebird_4]:
+          print sat.coords
+          geo_json.extend( [ {"type": "Feature",
+                      "name": "Satellite",
+                      "satname": sat.name,
+                          "geometry": {
+                              "type": "Point",
+                              "coordinates": sat.coords,
+                              }, "time":self.plottime.isoformat()
+                            } ] )
 
     # ----- GLD ----------------
     if self.do_GLD:
@@ -135,15 +135,16 @@ class GLD_server_instance(object):
         #     geo_json.extend(bb_fb4)
         #     geo_json.extend(bb_fb3)
         # bb = []
-        for sat in self.sats:
-          bb_tmp,_,_ = check_flyover(sat, new_flashes, new_times, td = self.window_delta,
-                    lat_lim = self.lat_lim, lon_lim = self.lon_lim, JSON = self.return_JSON)
-          
-          #bb.extend(bb_tmp)
+        if self.do_sats:
+          for sat in self.sats:
+            bb_tmp,_,_ = check_flyover(sat, new_flashes, new_times, td = self.window_delta,
+                      lat_lim = self.lat_lim, lon_lim = self.lon_lim, JSON = self.return_JSON)
+            
+            #bb.extend(bb_tmp)
 
-          if self.return_JSON:
-            geo_json.extend(bb_tmp)
-          
+            if self.return_JSON:
+              geo_json.extend(bb_tmp)
+            
         if self.return_JSON:
 
           # print new_flashes
