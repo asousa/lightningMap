@@ -5,9 +5,16 @@ A tool for displaying real-time lightning data (or any lat, long, magnitude data
 GLD2.html is the client page; GLD_server_websocket.py is the backend.
 
 ## Use
+Easy method:
+Just run ./start_GLD_server.sh
 
-1: Start Python webserver:
+If you're connecting from off campus, you'll need to port forward on your local machine: 
+ssh -N -f -Y -L localhost:9999:localhost:8000 <user>@<host>
+
+
+1: Start Python webserver: 
   sudo python -m SimpleHTTPServer 80
+  
 2: Start GLD_server_websocket.py
 
 3: Load GLD2.html
